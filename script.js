@@ -3,13 +3,41 @@ const $prompts = document.querySelector('.prompts');
 const $visitingDays = $prompts.querySelector('.days');
 const $visitingPlaces = $prompts.querySelector('.places');
 
-// const url = 'https://api.openai.com/v1/chat/completions';
-const url = 'https://api.openai.com/v1/completions';
+const zapierWebhookUrl = 'https://hooks.zapier.com/hooks/catch/3203471/3sh1zkc/'; 
 
-const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer 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', 
-};
+async function sendZapWebhook(fetchData) {
+    const res = await fetch(zapierWebhookUrl, { 
+        method: 'POST',
+        body: JSON.stringify(fetchData),
+    });
+
+    const data = await res.json(); 
+    console.log('Data after sending zapier webhook:', data)
+}
+
+$visitingDays.addEventListener('change', e => {
+    triggerZap(); 
+});
+
+$visitingPlaces.addEventListener('change', e => {
+    triggerZap(); 
+});
+
+function triggerZap() {
+    const days = getDays(); 
+    const places = getPlaces();
+    const fetchData = { days, places };
+    sendZapWebhook(fetchData);
+}
+
+function getDays() {
+    return Number( $visitingDays.value.trim() ) || 1; 
+}
+
+function getPlaces() {
+    return $visitingPlaces.value.split('\n').join(', ').trim() || 'Say "Please add prompt"';
+} 
+
 
 // const data = {
 //     "model": "gpt-3.5-turbo",
@@ -39,46 +67,3 @@ const headers = {
 // Grand Central Station 
 // Times Square
 
-$visitingDays.addEventListener('change', e => {
-    runModel(); 
-});
-
-$visitingPlaces.addEventListener('change', e => {
-    runModel(); 
-});
-
-async function runModel() {
-    const fetchData = {
-        "model": "gpt-3.5-turbo-instruct",
-        "prompt": `Build a ${getDays()} day itinerary of NYC that groups activities by location and 
-                    includes ${getPlaces()}. 
-                    Provide the results in json and include lat & long`,
-        // "max_tokens": 7,
-        "temperature": 0, 
-    };
-
-    const res = await fetch(url, { 
-        method: 'POST',
-        headers,
-        body: JSON.stringify(fetchData),
-    });
-
-    const data = await res.json(); 
-
-    console.log('my_data', data.choices)  
-    const result = data.choices.map(c => c.text).join('\n'); 
-
-    $result.textContent = result; 
-    console.log(data) 
-
-    console.log('visiting days:', getDays())
-    console.log('visiting places', getPlaces())
-}
-
-function getDays() {
-    return Number( $visitingDays.value.trim() ) || 1; 
-}
-
-function getPlaces() {
-    return $visitingPlaces.value.split('\n').map(text => text ).join(',').trim() || 'Say "Please add prompt"';
-} 
